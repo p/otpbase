@@ -26,14 +26,20 @@ import "net/http"
 var codes []string
 
 func add(c *gin.Context) {
-	code := c.PostForm("code")
+	code := c.PostForm("Body")
+	
+	if len(code) == 0{
+		//c.AbortWithError(400, errors.New("Empty body is not allowed"))
+		c.String(400, "Empty body is not allowed")
+		return
+	}
 	
 	codes = append([]string{code}, codes...)
 	if len(codes) > 5 {
 		codes = codes[:5]
 		}
 	
-	c.JSON(http.StatusOK, gin.H{})
+	c.String(204, "")
 }
 
 func list(c *gin.Context) {
@@ -41,6 +47,7 @@ out := ""
 for _,code := range codes {
 out += code + "\n"
 }
+        c.Writer.Header().Set("content-type", "text/plain")
 	c.String(http.StatusOK, out)
 }
 
