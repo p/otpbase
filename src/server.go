@@ -11,6 +11,11 @@ package main
 // The program treats OTP codes as strings and as such will work with
 // any data received via SMS.
 
+// To forward OTP codes to another number in addition to recording them,
+// set FORWARD environment variable to the phone number to forward to and
+// set this program's URL as the webhook in Twilio; see
+// https://stackoverflow.com/questions/40706883/forward-voice-call-and-invoke-webhook
+
 import (
 	//"errors"
 	"fmt"
@@ -22,6 +27,18 @@ import (
 import "net/http"
 
 var codes []string
+
+func twiml(forward_number string) string {
+twiml_template := `
+<?xml version='1.0' encoding='UTF-8'?>
+<Response>
+    <Message to='%s'>[OTPBASE] {{From}}: {{Body}}</Message>
+</Response>
+`
+return fmt.Sprintf(twiml_template, forward_number)
+}
+
+var forward_number string
 
 func add(c *gin.Context) {
 	code := c.PostForm("Body")
@@ -37,7 +54,13 @@ func add(c *gin.Context) {
 		codes = codes[:5]
 	}
 
+	if forward_number != "" {
+	resp := twiml(forward_number)
+	c.Writer.Header().Set("content-type", "application/xml")
+	c.String(200, resp)
+	} else {
 	c.String(204, "")
+}
 }
 
 func list(c *gin.Context) {
@@ -66,6 +89,7 @@ func main() {
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
+	forward_number = os.Getenv("FORWARD")
 	port := os.Getenv("PORT")
 	var iport int
 	var err error
