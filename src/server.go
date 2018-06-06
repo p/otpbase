@@ -18,8 +18,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-
-	_ "github.com/lib/pq"
 )
 import "net/http"
 
