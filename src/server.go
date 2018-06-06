@@ -21,12 +21,18 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"time"
 	"os"
 	"strconv"
 )
 import "net/http"
 
-var codes []string
+type entry struct {
+	code string
+	received_at int64
+}
+
+var entries []entry
 
 func twiml(forward_number string) string {
 twiml_template := `
@@ -39,6 +45,20 @@ return fmt.Sprintf(twiml_template, forward_number)
 }
 
 var forward_number string
+var ticker *time.Ticker
+
+func expire() {
+	for range ticker.C {
+		for len(entries) > 0 {
+			entry := entries[len(entries)-1]
+			if time.Now().UnixNano() - entry.received_at > 60e9 {
+				entries = entries[:len(entries)-1]
+			} else {
+				break
+			}
+		}
+	}
+}
 
 func add(c *gin.Context) {
 	code := c.PostForm("Body")
@@ -49,9 +69,9 @@ func add(c *gin.Context) {
 		return
 	}
 
-	codes = append([]string{code}, codes...)
-	if len(codes) > 5 {
-		codes = codes[:5]
+	entries = append([]entry{entry{code, time.Now().UnixNano()}}, entries...)
+	if len(entries) > 5 {
+		entries = entries[:5]
 	}
 
 	if forward_number != "" {
@@ -65,15 +85,18 @@ func add(c *gin.Context) {
 
 func list(c *gin.Context) {
 	out := ""
-	for _, code := range codes {
-		out += code + "\n"
+	for _, entry := range entries {
+		out += entry.code + "\n"
 	}
 	c.Writer.Header().Set("content-type", "text/plain")
 	c.String(http.StatusOK, out)
 }
 
 func main() {
-	codes = make([]string, 0)
+	entries = make([]entry, 0)
+	
+	ticker = time.NewTicker(10*time.Second)
+	go expire()
 
 	// Disable Console Color
 	// gin.DisableConsoleColor()
