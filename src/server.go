@@ -24,8 +24,11 @@ import (
 	"time"
 	"os"
 	"strconv"
+	"sync"
 )
 import "net/http"
+
+var mutex *sync.Mutex
 
 type entry struct {
 	code string
@@ -49,6 +52,7 @@ var ticker *time.Ticker
 
 func expire() {
 	for range ticker.C {
+		mutex.Lock()
 		for len(entries) > 0 {
 			entry := entries[len(entries)-1]
 			if time.Now().UnixNano() - entry.received_at > 60e9 {
@@ -57,6 +61,7 @@ func expire() {
 				break
 			}
 		}
+		mutex.Unlock()
 	}
 }
 
@@ -70,10 +75,12 @@ func add(c *gin.Context) {
 		return
 	}
 
+	mutex.Lock()
 	entries = append([]entry{entry{code, time.Now().UnixNano()}}, entries...)
 	if len(entries) > 5 {
 		entries = entries[:5]
 	}
+	mutex.Unlock()
 
 	if forward_number != "" {
 	resp := twiml(forward_number, from_number, code)
@@ -86,14 +93,17 @@ func add(c *gin.Context) {
 
 func list(c *gin.Context) {
 	out := ""
+	mutex.Lock()
 	for _, entry := range entries {
 		out += entry.code + "\n"
 	}
+	mutex.Unlock()
 	c.Writer.Header().Set("content-type", "text/plain")
 	c.String(http.StatusOK, out)
 }
 
 func main() {
+	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
 	
 	ticker = time.NewTicker(10*time.Second)
