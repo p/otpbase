@@ -34,14 +34,14 @@ type entry struct {
 
 var entries []entry
 
-func twiml(forward_number string) string {
+func twiml(forward_number string, from_number string, code string) string {
 twiml_template := `
 <?xml version='1.0' encoding='UTF-8'?>
 <Response>
-    <Message to='%s'>[OTPBASE] {{From}}: {{Body}}</Message>
+    <Message to='%s'>[OTPBASE:%s] %s</Message>
 </Response>
 `
-return fmt.Sprintf(twiml_template, forward_number)
+return fmt.Sprintf(twiml_template, forward_number, from_number, code)
 }
 
 var forward_number string
@@ -62,6 +62,7 @@ func expire() {
 
 func add(c *gin.Context) {
 	code := c.PostForm("Body")
+	from_number := c.PostForm("From")
 
 	if len(code) == 0 {
 		//c.AbortWithError(400, errors.New("Empty body is not allowed"))
@@ -75,7 +76,7 @@ func add(c *gin.Context) {
 	}
 
 	if forward_number != "" {
-	resp := twiml(forward_number)
+	resp := twiml(forward_number, from_number, code)
 	c.Writer.Header().Set("content-type", "application/xml")
 	c.String(200, resp)
 	} else {
