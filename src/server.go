@@ -21,30 +21,30 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
-	"time"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 import "net/http"
 
 var mutex *sync.Mutex
 
 type entry struct {
-	code string
+	code        string
 	received_at int64
 }
 
 var entries []entry
 
 func twiml(forward_number string, from_number string, code string) string {
-twiml_template := `
+	twiml_template := `
 <?xml version='1.0' encoding='UTF-8'?>
 <Response>
     <Message to='%s'>[OTPBASE:%s] %s</Message>
 </Response>
 `
-return fmt.Sprintf(twiml_template, forward_number, from_number, code)
+	return fmt.Sprintf(twiml_template, forward_number, from_number, code)
 }
 
 var forward_number string
@@ -55,7 +55,7 @@ func expire() {
 		mutex.Lock()
 		for len(entries) > 0 {
 			entry := entries[len(entries)-1]
-			if time.Now().UnixNano() - entry.received_at > 60e9 {
+			if time.Now().UnixNano()-entry.received_at > 60e9 {
 				entries = entries[:len(entries)-1]
 			} else {
 				break
@@ -83,12 +83,12 @@ func add(c *gin.Context) {
 	mutex.Unlock()
 
 	if forward_number != "" {
-	resp := twiml(forward_number, from_number, code)
-	c.Writer.Header().Set("content-type", "application/xml")
-	c.String(200, resp)
+		resp := twiml(forward_number, from_number, code)
+		c.Writer.Header().Set("content-type", "application/xml")
+		c.String(200, resp)
 	} else {
-	c.String(204, "")
-}
+		c.String(204, "")
+	}
 }
 
 func list(c *gin.Context) {
@@ -105,8 +105,8 @@ func list(c *gin.Context) {
 func main() {
 	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
-	
-	ticker = time.NewTicker(10*time.Second)
+
+	ticker = time.NewTicker(10 * time.Second)
 	go expire()
 
 	// Disable Console Color
