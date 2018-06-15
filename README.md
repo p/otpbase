@@ -24,6 +24,17 @@ phone number.
 
 otpbase's dependencies are managed with [go-get-deps](https://github.com/p/go-get-deps).
 
+## Usage
+
+otpbase recognizes the following environment variables at runtime:
+
+- DEBUG: enable Gin debug mode
+- PORT: port number to bind to (default is 8092)
+- HTTP_USER: enable HTTP authentication for retrieving OTP codes, specify
+  the user name
+- HTTP_PASSWORD: enable HTTP authentication for retrieving OTP codes, specify
+  the password
+
 ## License
 
 2 clause BSD

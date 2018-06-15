@@ -47,6 +47,7 @@ func twiml(forward_number string, from_number string, code string) string {
 	return fmt.Sprintf(twiml_template, forward_number, from_number, code)
 }
 
+var http_user, http_password string
 var forward_number string
 var ticker *time.Ticker
 
@@ -105,12 +106,26 @@ func list(c *gin.Context) {
 func main() {
 	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
+	
+	http_user = os.Getenv("HTTP_USER")
+	http_password = os.Getenv("HTTP_PASSWORD")
+	if http_user == "" && http_password != "" {
+		log.Fatal("HTTP_PASSWORD was specified but HTTP_USER was not, they need to be given together")
+	}
+	if http_user != "" && http_password == "" {
+		log.Fatal("HTTP_USER was specified but HTTP_PASSWORD was not, they need to be given together")
+	}
 
 	ticker = time.NewTicker(10 * time.Second)
 	go expire()
 
 	// Disable Console Color
 	// gin.DisableConsoleColor()
+	
+	debug := os.Getenv("DEBUG")
+	if debug == "" {
+		gin.SetMode(gin.ReleaseMode)
+		}
 
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
@@ -119,7 +134,15 @@ func main() {
 	//router.Use(gin.Recovery())
 
 	router.POST("/", add)
-	router.GET("/", list)
+	
+	if http_user != "" {
+		authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
+			http_user: http_password,
+		}))
+		authorized.GET("/", list)
+	} else {
+		router.GET("/", list)
+	}
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
