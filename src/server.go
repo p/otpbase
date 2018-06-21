@@ -25,31 +25,35 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"regexp"
 )
 import "net/http"
+
+const CODE_REGEXP = "(\\d{6,})"
 
 var mutex *sync.Mutex
 
 type entry struct {
-	code        string
+	text        string
 	received_at int64
 }
 
 var entries []entry
 
-func twiml(forward_number string, from_number string, code string) string {
+func twiml(forward_number string, from_number string, text string) string {
 	twiml_template := `
 <?xml version='1.0' encoding='UTF-8'?>
 <Response>
     <Message to='%s'>[OTPBASE:%s] %s</Message>
 </Response>
 `
-	return fmt.Sprintf(twiml_template, forward_number, from_number, code)
+	return fmt.Sprintf(twiml_template, forward_number, from_number, text)
 }
 
 var http_user, http_password string
 var forward_number string
 var ticker *time.Ticker
+var code_regexp *regexp.Regexp
 
 func expire() {
 	for range ticker.C {
@@ -67,24 +71,24 @@ func expire() {
 }
 
 func add(c *gin.Context) {
-	code := c.PostForm("Body")
+	text := c.PostForm("Body")
 	from_number := c.PostForm("From")
 
-	if len(code) == 0 {
+	if len(text) == 0 {
 		//c.AbortWithError(400, errors.New("Empty body is not allowed"))
 		c.String(400, "Empty body is not allowed")
 		return
 	}
 
 	mutex.Lock()
-	entries = append([]entry{entry{code, time.Now().UnixNano()}}, entries...)
+	entries = append([]entry{entry{text, time.Now().UnixNano()}}, entries...)
 	if len(entries) > 5 {
 		entries = entries[:5]
 	}
 	mutex.Unlock()
 
 	if forward_number != "" {
-		resp := twiml(forward_number, from_number, code)
+		resp := twiml(forward_number, from_number, text)
 		c.Writer.Header().Set("content-type", "application/xml")
 		c.String(200, resp)
 	} else {
@@ -96,7 +100,23 @@ func list(c *gin.Context) {
 	out := ""
 	mutex.Lock()
 	for _, entry := range entries {
-		out += entry.code + "\n"
+		matches := code_regexp.FindStringSubmatch(entry.text)
+		if len(matches) > 0 {
+			out += matches[0] + "\n"
+		} else {
+			out += entry.text + "\n"
+		}
+	}
+	mutex.Unlock()
+	c.Writer.Header().Set("content-type", "text/plain")
+	c.String(http.StatusOK, out)
+}
+
+func list_full(c *gin.Context) {
+	out := ""
+	mutex.Lock()
+	for _, entry := range entries {
+		out += entry.text + "\n"
 	}
 	mutex.Unlock()
 	c.Writer.Header().Set("content-type", "text/plain")
@@ -106,6 +126,7 @@ func list(c *gin.Context) {
 func main() {
 	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
+	code_regexp = regexp.MustCompile(CODE_REGEXP)
 	
 	http_user = os.Getenv("HTTP_USER")
 	http_password = os.Getenv("HTTP_PASSWORD")
@@ -140,8 +161,10 @@ func main() {
 			http_user: http_password,
 		}))
 		authorized.GET("/", list)
+		authorized.GET("/full", list_full)
 	} else {
 		router.GET("/", list)
+		router.GET("/full", list_full)
 	}
 
 	// By default it serves on :8080 unless a
