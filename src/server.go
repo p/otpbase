@@ -25,6 +25,8 @@ import (
 	"sync"
 	//"io"
 	"time"
+	"strings"
+	"io/ioutil"
 	"regexp"
 	"log"
 	
@@ -190,7 +192,7 @@ func apps(c *gin.Context) {
 		return nil
 	})
 	
-	c.HTML(http.StatusOK, "apps.html", gin.H{
+	c.HTML(http.StatusOK, "/views/apps.html", gin.H{
 		"apps": m,
 		})
 }
@@ -211,6 +213,25 @@ func app(c *gin.Context) {
 	}
 	
 	c.String(200, code)
+}
+
+// loadTemplate loads templates embedded by go-assets-builder
+func load_templates() (*template.Template, error) {
+	t := template.New("")
+	for name, file := range Assets.Files {
+		if file.IsDir() || !strings.HasSuffix(name, ".html") {
+			continue
+		}
+		h, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+		t, err = t.New(name).Parse(string(h))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return t, nil
 }
 
 func main() {
@@ -270,7 +291,13 @@ func main() {
 	// logger and recovery (crash-free) middleware
 	router := gin.Default()
 	
-	router.LoadHTMLGlob("views/*.html")
+	//router.LoadHTMLGlob("views/*.html")
+	
+	t, err := load_templates()
+	if err != nil {
+		panic(err)
+	}
+	router.SetHTMLTemplate(t)	
 
 	//router.Use(gin.Recovery())
 
