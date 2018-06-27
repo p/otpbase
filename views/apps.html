@@ -1,9 +1,19 @@
 <!doctype html>
 <html>
-<head><title>OTP</title></head>
+<head><title>OTP</title>
+<style>
+  form {
+    display: inline;
+  }
+  .apps a {
+    width: 25%;
+    display: inline-block;
+  }
+</style>
+</head>
 <body>
 <h1>OTP</h1>
-<ul>
+<ul class='apps'>
 {{ range $name, $v := .apps }}
 <li>
   <a href="/apps/{{$name}}">{{$name}}</a>
