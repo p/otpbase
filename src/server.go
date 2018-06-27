@@ -162,6 +162,23 @@ func add_app(c *gin.Context) {
 	c.Redirect(303, "/apps")
 }
 
+func delete_app(c *gin.Context){
+	name := c.Param("name")
+	
+	err := db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("apps"))
+		err := b.Delete([]byte(name))
+		return err
+	})
+	
+	if err != nil {
+		c.String(500, "Error removing: " + err.Error())
+		return
+	}
+	
+	c.Redirect(303, "/apps")
+}	
+
 func apps(c *gin.Context) {
 	m := make(map[string]string)
 	db.View(func(tx *bolt.Tx) error {
@@ -267,12 +284,14 @@ func main() {
 		authorized.GET("/full", list_full)
 		router.GET("/apps", apps)
 		router.GET("/apps/:name", app)
+		router.POST("/apps/:name/delete", delete_app)
 		router.POST("/apps", add_app)
 	} else {
 		router.GET("/", list)
 		router.GET("/full", list_full)
 		router.GET("/apps", apps)
 		router.GET("/apps/:name", app)
+		router.POST("/apps/:name/delete", delete_app)
 		router.POST("/apps", add_app)
 	}
 

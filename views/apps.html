@@ -5,7 +5,12 @@
 <h1>OTP</h1>
 <ul>
 {{ range $name, $v := .apps }}
-<li><a href="/apps/{{$name}}">{{$name}}</a></li>
+<li>
+  <a href="/apps/{{$name}}">{{$name}}</a>
+  <form action="/apps/{{$name}}/delete" method="post">
+    <input type='submit' value='Delete'>
+  </form>
+</li>
 {{ end }}
 </ul>
 <form action='/apps' method='post'>
