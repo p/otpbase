@@ -155,7 +155,7 @@ func add_app(c *gin.Context) {
 	})
 	
 	if err != nil {
-		c.String(500, "Error saving")
+		c.String(500, "Error saving: " + err.Error())
 		return
 	}
 	
@@ -176,6 +176,24 @@ func apps(c *gin.Context) {
 	c.HTML(http.StatusOK, "apps.html", gin.H{
 		"apps": m,
 		})
+}
+
+func app(c *gin.Context) {
+	var key []byte
+	name := c.Param("name")
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("apps"))
+		key = b.Get([]byte(name))
+		return nil
+	})
+	
+	code, err := gen_totp(key)
+	if err != nil {
+		c.String(500, "Error generating: " + err.Error())
+		return
+	}
+	
+	c.String(200, code)
 }
 
 func main() {
@@ -247,10 +265,14 @@ func main() {
 		}))
 		authorized.GET("/", list)
 		authorized.GET("/full", list_full)
+		router.GET("/apps", apps)
+		router.GET("/apps/:name", app)
+		router.POST("/apps", add_app)
 	} else {
 		router.GET("/", list)
 		router.GET("/full", list_full)
 		router.GET("/apps", apps)
+		router.GET("/apps/:name", app)
 		router.POST("/apps", add_app)
 	}
 

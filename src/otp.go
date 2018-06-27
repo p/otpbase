@@ -74,7 +74,7 @@ func gen_hotp(key []byte, counter int64) (string, error) {
 	return fmt.Sprintf(passcodeFormat, code), nil
 }
 
-func gen_totp(key []byte, step int64) (string, error) {
+func gen_totp(key []byte) (string, error) {
 	var code string
 	now := time.Now().UTC().Unix()
 	counter := now / step
