@@ -41,6 +41,7 @@ import (
 	"encoding/binary"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 	"fmt"
 )
@@ -49,6 +50,12 @@ const step = 30
 const digits = 6
 
 func secret_to_key(secret string) ([]byte, error) {
+	secret = strings.ToUpper(secret)
+	secret = strings.Replace(secret, " ", "", -1)
+		// repad base 32 strings if they are short.
+		for len(secret) < 32 && len(secret) > 16 {
+			secret = secret + "="
+		}
 	key, err := base32.StdEncoding.DecodeString(secret)
 	return key, err
 }
