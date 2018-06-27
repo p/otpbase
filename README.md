@@ -9,6 +9,9 @@ The use case it was built for is ability to access the OTP codes
 for applications and services which only offer the option to send the
 codes via SMS messages (or proprietary applications) in a generic way.
 
+otpbase can also generate TOTP codes. This functionality is similar to what
+Google Authenticator provides.
+
 In order to use otpbase, the following setup is necessary:
 
 1. A [Twilio](https://www.twilio.com/) account.
@@ -29,11 +32,21 @@ otpbase's dependencies are managed with [go-get-deps](https://github.com/p/go-ge
 otpbase recognizes the following environment variables at runtime:
 
 - DEBUG: enable Gin debug mode
+- DB_PATH: Path to database file for storing TOTP application tokens
 - PORT: port number to bind to (default is 8092)
 - HTTP_USER: enable HTTP authentication for retrieving OTP codes, specify
   the user name
 - HTTP_PASSWORD: enable HTTP authentication for retrieving OTP codes, specify
   the password
+
+## Caveats
+
+When I gave a Twilio SMS number to Google for MFA, Google accpted the number
+but never sent any messages to it. I imagine Google knows whether each phone
+number in existence is attached to a physical phone or not, or at the very
+least has this as one of their goals. This makes the SMS part of otpbase
+unusable for Google MFA. Fortunately it is possible to set up otpbase
+in lieu of using Google Authenticator, which Google so far accepts.
 
 ## License
 

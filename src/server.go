@@ -20,12 +20,16 @@ import (
 	//"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
 	"os"
 	"strconv"
 	"sync"
+	//"io"
 	"time"
 	"regexp"
+	"log"
+	
+    "html/template" 
+	bolt "github.com/coreos/bbolt"
 )
 import "net/http"
 
@@ -54,6 +58,8 @@ var http_user, http_password string
 var forward_number string
 var ticker *time.Ticker
 var code_regexp *regexp.Regexp
+var apps_template *template.Template
+var db *bolt.DB
 
 func expire() {
 	for range ticker.C {
@@ -123,7 +129,52 @@ func list_full(c *gin.Context) {
 	c.String(http.StatusOK, out)
 }
 
+func add_app(c *gin.Context) {
+	name := c.PostForm("name")
+	code := c.PostForm("code")
+	
+	if len(name) == 0 {
+		c.String(400, "Name is required")
+		return
+	}
+	if len(code) == 0 {
+		c.String(400, "Code is required")
+		return
+	}
+	
+	err := db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("apps"))
+		err := b.Put([]byte(name), []byte(code))
+		return err
+	})
+	
+	if err != nil {
+		c.String(500, "Error saving")
+		return
+	}
+	
+	c.Redirect(303, "/apps")
+}
+
+func apps(c *gin.Context) {
+	m := make(map[string]string)
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("apps"))
+		b.ForEach(func(k, v []byte) error {
+			m[string(k)] = string(v)
+			return nil
+		})
+		return nil
+	})
+	
+	c.HTML(http.StatusOK, "apps.html", gin.H{
+		"apps": m,
+		})
+}
+
 func main() {
+	var err error
+	
 	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
 	code_regexp = regexp.MustCompile(CODE_REGEXP)
@@ -136,6 +187,32 @@ func main() {
 	if http_user != "" && http_password == "" {
 		log.Fatal("HTTP_USER was specified but HTTP_PASSWORD was not, they need to be given together")
 	}
+	
+	apps_template, err = template.New("apps").Parse(`
+	<b>Hello world</b>
+`)
+	if err !=nil {
+		//log.Fatal("Error loading apps template: " + err)
+	}
+	
+	db_path := os.Getenv("DB_PATH")
+	if db_path == "" {
+		db_path = "otpbase.db"
+	}
+	db, err = bolt.Open(db_path, 0600, nil)
+	if err != nil {
+		log.Fatal("Error opening database")
+	}
+	defer db.Close()
+	
+	db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("apps"))
+		if err != nil {
+			log.Fatal("Cannot create apps bucket")
+		}
+		b=b
+		return nil
+	})
 
 	ticker = time.NewTicker(10 * time.Second)
 	go expire()
@@ -151,6 +228,8 @@ func main() {
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
 	router := gin.Default()
+	
+	router.LoadHTMLGlob("views/*.html")
 
 	//router.Use(gin.Recovery())
 
@@ -165,6 +244,8 @@ func main() {
 	} else {
 		router.GET("/", list)
 		router.GET("/full", list_full)
+		router.GET("/apps", apps)
+		router.POST("/apps", add_app)
 	}
 
 	// By default it serves on :8080 unless a
@@ -172,7 +253,6 @@ func main() {
 	forward_number = os.Getenv("FORWARD")
 	port := os.Getenv("PORT")
 	var iport int
-	var err error
 	if port == "" {
 		iport = 8092
 	} else {
