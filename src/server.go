@@ -27,6 +27,7 @@ import (
 	"time"
 	"regexp"
 	"log"
+	"encoding/base32"
 	
     "html/template" 
 	bolt "github.com/coreos/bbolt"
@@ -131,20 +132,26 @@ func list_full(c *gin.Context) {
 
 func add_app(c *gin.Context) {
 	name := c.PostForm("name")
-	code := c.PostForm("code")
+	secret := c.PostForm("secret")
 	
 	if len(name) == 0 {
 		c.String(400, "Name is required")
 		return
 	}
-	if len(code) == 0 {
-		c.String(400, "Code is required")
+	if len(secret) == 0 {
+		c.String(400, "Secret is required")
 		return
 	}
 	
-	err := db.Update(func(tx *bolt.Tx) error {
+	key, err := base32.StdEncoding.DecodeString(secret)
+	if err != nil {
+		c.String(400, err.Error())
+		return
+	}
+	
+	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("apps"))
-		err := b.Put([]byte(name), []byte(code))
+		err := b.Put([]byte(name), key)
 		return err
 	})
 	
