@@ -36,9 +36,48 @@ package main
 
 import (
 	"encoding/base32"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/binary"
+	"math"
+	"strconv"
+	"time"
+	"fmt"
 )
+
+const step = 30
+const digits = 6
 
 func secret_to_key(secret string) ([]byte, error) {
 	key, err := base32.StdEncoding.DecodeString(secret)
 	return key, err
+}
+
+func gen_hotp(key []byte, counter int64) (string, error) {
+	var code uint32
+
+	hash := hmac.New(sha1.New, key)
+
+	err := binary.Write(hash, binary.BigEndian, counter)
+	if err != nil {
+		return "", err
+	}
+
+	h := hash.Sum(nil)
+	offset := h[19] & 0x0f
+
+	trunc := binary.BigEndian.Uint32(h[offset : offset+4])
+	trunc &= 0x7fffffff
+	code = trunc % uint32(math.Pow(10, float64(digits)))
+	passcodeFormat := "%0" + strconv.Itoa(digits) + "d"
+
+	return fmt.Sprintf(passcodeFormat, code), nil
+}
+
+func gen_totp(key []byte, step int64) (string, error) {
+	var code string
+	now := time.Now().UTC().Unix()
+	counter := now / step
+	code, err := gen_hotp(key, counter)
+	return code, err
 }
