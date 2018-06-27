@@ -1,5 +1,8 @@
 all: b
 
+assets:
+	go-assets-builder views >src/assets.go
+
 b:
 	mkdir -p tmp
 	go-assets-builder views >src/assets.go
