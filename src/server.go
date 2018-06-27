@@ -27,7 +27,6 @@ import (
 	"time"
 	"regexp"
 	"log"
-	"encoding/base32"
 	
     "html/template" 
 	bolt "github.com/coreos/bbolt"
@@ -143,7 +142,7 @@ func add_app(c *gin.Context) {
 		return
 	}
 	
-	key, err := base32.StdEncoding.DecodeString(secret)
+	key, err := secret_to_key(secret)
 	if err != nil {
 		c.String(400, err.Error())
 		return
