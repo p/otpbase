@@ -5,11 +5,11 @@
 // BSD-style license that can be found in the LICENSE file.
 //
 // Copyright (c) 2015 Reed O'Brien. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 //    * Redistributions of source code must retain the above copyright
 // notice, this list of conditions and the following disclaimer.
 //    * Redistributions in binary form must reproduce the above
@@ -19,7 +19,7 @@
 //    * Neither the name of Reed O'Brien, nor the names of any
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -35,15 +35,15 @@
 package main
 
 import (
-	"encoding/base32"
 	"crypto/hmac"
 	"crypto/sha1"
+	"encoding/base32"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 )
 
 const step = 30
@@ -52,10 +52,10 @@ const digits = 6
 func secret_to_key(secret string) ([]byte, error) {
 	secret = strings.ToUpper(secret)
 	secret = strings.Replace(secret, " ", "", -1)
-		// repad base 32 strings if they are short.
-		for len(secret) < 32 && len(secret) > 16 {
-			secret = secret + "="
-		}
+	// repad base 32 strings if they are short.
+	for len(secret) < 32 && len(secret) > 16 {
+		secret = secret + "="
+	}
 	key, err := base32.StdEncoding.DecodeString(secret)
 	return key, err
 }

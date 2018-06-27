@@ -24,14 +24,14 @@ import (
 	"strconv"
 	"sync"
 	//"io"
-	"time"
-	"strings"
 	"io/ioutil"
-	"regexp"
 	"log"
-	
-    "html/template" 
+	"regexp"
+	"strings"
+	"time"
+
 	bolt "github.com/coreos/bbolt"
+	"html/template"
 )
 import "net/http"
 
@@ -134,7 +134,7 @@ func list_full(c *gin.Context) {
 func add_app(c *gin.Context) {
 	name := c.PostForm("name")
 	secret := c.PostForm("secret")
-	
+
 	if len(name) == 0 {
 		c.String(400, "Name is required")
 		return
@@ -143,43 +143,43 @@ func add_app(c *gin.Context) {
 		c.String(400, "Secret is required")
 		return
 	}
-	
+
 	key, err := secret_to_key(secret)
 	if err != nil {
 		c.String(400, err.Error())
 		return
 	}
-	
+
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("apps"))
 		err := b.Put([]byte(name), key)
 		return err
 	})
-	
+
 	if err != nil {
-		c.String(500, "Error saving: " + err.Error())
+		c.String(500, "Error saving: "+err.Error())
 		return
 	}
-	
+
 	c.Redirect(303, "/apps")
 }
 
-func delete_app(c *gin.Context){
+func delete_app(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("apps"))
 		err := b.Delete([]byte(name))
 		return err
 	})
-	
+
 	if err != nil {
-		c.String(500, "Error removing: " + err.Error())
+		c.String(500, "Error removing: "+err.Error())
 		return
 	}
-	
+
 	c.Redirect(303, "/apps")
-}	
+}
 
 func apps(c *gin.Context) {
 	m := make(map[string]string)
@@ -191,10 +191,10 @@ func apps(c *gin.Context) {
 		})
 		return nil
 	})
-	
+
 	c.HTML(http.StatusOK, "/views/apps.html", gin.H{
 		"apps": m,
-		})
+	})
 }
 
 func app(c *gin.Context) {
@@ -205,13 +205,13 @@ func app(c *gin.Context) {
 		key = b.Get([]byte(name))
 		return nil
 	})
-	
+
 	code, err := gen_totp(key)
 	if err != nil {
-		c.String(500, "Error generating: " + err.Error())
+		c.String(500, "Error generating: "+err.Error())
 		return
 	}
-	
+
 	c.String(200, code)
 }
 
@@ -236,11 +236,11 @@ func load_templates() (*template.Template, error) {
 
 func main() {
 	var err error
-	
+
 	mutex = &sync.Mutex{}
 	entries = make([]entry, 0)
 	code_regexp = regexp.MustCompile(CODE_REGEXP)
-	
+
 	http_user = os.Getenv("HTTP_USER")
 	http_password = os.Getenv("HTTP_PASSWORD")
 	if http_user == "" && http_password != "" {
@@ -249,14 +249,14 @@ func main() {
 	if http_user != "" && http_password == "" {
 		log.Fatal("HTTP_USER was specified but HTTP_PASSWORD was not, they need to be given together")
 	}
-	
+
 	apps_template, err = template.New("apps").Parse(`
 	<b>Hello world</b>
 `)
-	if err !=nil {
+	if err != nil {
 		//log.Fatal("Error loading apps template: " + err)
 	}
-	
+
 	db_path := os.Getenv("DB_PATH")
 	if db_path == "" {
 		db_path = "otpbase.db"
@@ -266,13 +266,13 @@ func main() {
 		log.Fatal("Error opening database")
 	}
 	defer db.Close()
-	
+
 	db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("apps"))
 		if err != nil {
 			log.Fatal("Cannot create apps bucket")
 		}
-		b=b
+		b = b
 		return nil
 	})
 
@@ -281,28 +281,28 @@ func main() {
 
 	// Disable Console Color
 	// gin.DisableConsoleColor()
-	
+
 	debug := os.Getenv("DEBUG")
 	if debug == "" {
 		gin.SetMode(gin.ReleaseMode)
-		}
+	}
 
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
 	router := gin.Default()
-	
+
 	//router.LoadHTMLGlob("views/*.html")
-	
+
 	t, err := load_templates()
 	if err != nil {
 		panic(err)
 	}
-	router.SetHTMLTemplate(t)	
+	router.SetHTMLTemplate(t)
 
 	//router.Use(gin.Recovery())
 
 	router.POST("/", add)
-	
+
 	if http_user != "" {
 		authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
 			http_user: http_password,
