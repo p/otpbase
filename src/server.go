@@ -117,6 +117,7 @@ func list(c *gin.Context) {
 	}
 	mutex.Unlock()
 	c.Writer.Header().Set("content-type", "text/plain")
+  set_cors_headers(c)
 	c.String(http.StatusOK, out)
 }
 
@@ -212,6 +213,7 @@ func app(c *gin.Context) {
 		return
 	}
 
+  set_cors_headers(c)
 	c.String(200, code)
 }
 
@@ -232,6 +234,11 @@ func load_templates() (*template.Template, error) {
 		}
 	}
 	return t, nil
+}
+
+func set_cors_headers(c *gin.Context) {
+  c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+  c.Writer.Header().Set("Access-Control-Allow-Method", "*")
 }
 
 func main() {
