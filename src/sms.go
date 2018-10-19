@@ -12,8 +12,8 @@ import (
 	//"log"
 	//"regexp"
 	//"strings"
+	"net/http"
 	"time"
-"net/http"
 )
 
 const CODE_REGEXP = "(\\d{6,})"
@@ -21,7 +21,7 @@ const CODE_REGEXP = "(\\d{6,})"
 var mutex *sync.Mutex
 
 type entry struct {
-	text        string
+	text   string
 	received_at int64
 }
 
@@ -93,7 +93,7 @@ func list_sms_codes(c *gin.Context) {
 	}
 	mutex.Unlock()
 	c.Writer.Header().Set("content-type", "text/plain")
-  set_cors_headers(c)
+	set_cors_headers(c)
 	c.String(http.StatusOK, out)
 }
 

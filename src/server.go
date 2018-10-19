@@ -32,7 +32,7 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 	"html/template"
-"net/http"
+	"net/http"
 )
 
 var http_user, http_password string
@@ -122,7 +122,7 @@ func app(c *gin.Context) {
 		return
 	}
 
-  set_cors_headers(c)
+	set_cors_headers(c)
 	c.String(200, code)
 }
 
@@ -146,8 +146,8 @@ func load_templates() (*template.Template, error) {
 }
 
 func set_cors_headers(c *gin.Context) {
-  c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-  c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
 }
 
 func main() {
