@@ -32,105 +32,14 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 	"html/template"
+"net/http"
 )
-import "net/http"
-
-const CODE_REGEXP = "(\\d{6,})"
-
-var mutex *sync.Mutex
-
-type entry struct {
-	text        string
-	received_at int64
-}
-
-var entries []entry
-
-func twiml(forward_number string, from_number string, text string) string {
-	twiml_template := `
-<?xml version='1.0' encoding='UTF-8'?>
-<Response>
-    <Message to='%s'>[OTPBASE:%s] %s</Message>
-</Response>
-`
-	return fmt.Sprintf(twiml_template, forward_number, from_number, text)
-}
 
 var http_user, http_password string
-var forward_number string
 var ticker *time.Ticker
 var code_regexp *regexp.Regexp
 var apps_template *template.Template
 var db *bolt.DB
-
-func expire() {
-	for range ticker.C {
-		mutex.Lock()
-		for len(entries) > 0 {
-			entry := entries[len(entries)-1]
-			if time.Now().UnixNano()-entry.received_at > 60e9 {
-				entries = entries[:len(entries)-1]
-			} else {
-				break
-			}
-		}
-		mutex.Unlock()
-	}
-}
-
-func add(c *gin.Context) {
-	text := c.PostForm("Body")
-	from_number := c.PostForm("From")
-
-	if len(text) == 0 {
-		//c.AbortWithError(400, errors.New("Empty body is not allowed"))
-		c.String(400, "Empty body is not allowed")
-		return
-	}
-
-	mutex.Lock()
-	entries = append([]entry{entry{text, time.Now().UnixNano()}}, entries...)
-	if len(entries) > 5 {
-		entries = entries[:5]
-	}
-	mutex.Unlock()
-
-	if forward_number != "" {
-		resp := twiml(forward_number, from_number, text)
-		c.Writer.Header().Set("content-type", "application/xml")
-		c.String(200, resp)
-	} else {
-		c.String(204, "")
-	}
-}
-
-func list(c *gin.Context) {
-	out := ""
-	mutex.Lock()
-	for _, entry := range entries {
-		matches := code_regexp.FindStringSubmatch(entry.text)
-		if len(matches) > 0 {
-			out += matches[0] + "\n"
-		} else {
-			out += entry.text + "\n"
-		}
-	}
-	mutex.Unlock()
-	c.Writer.Header().Set("content-type", "text/plain")
-  set_cors_headers(c)
-	c.String(http.StatusOK, out)
-}
-
-func list_full(c *gin.Context) {
-	out := ""
-	mutex.Lock()
-	for _, entry := range entries {
-		out += entry.text + "\n"
-	}
-	mutex.Unlock()
-	c.Writer.Header().Set("content-type", "text/plain")
-	c.String(http.StatusOK, out)
-}
 
 func add_app(c *gin.Context) {
 	name := c.PostForm("name")
@@ -284,7 +193,7 @@ func main() {
 	})
 
 	ticker = time.NewTicker(10 * time.Second)
-	go expire()
+	go expire_sms()
 
 	// Disable Console Color
 	// gin.DisableConsoleColor()
@@ -308,21 +217,21 @@ func main() {
 
 	//router.Use(gin.Recovery())
 
-	router.POST("/", add)
+	router.POST("/", receive_sms)
 
 	if http_user != "" {
 		authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
 			http_user: http_password,
 		}))
-		authorized.GET("/", list)
-		authorized.GET("/full", list_full)
+		authorized.GET("/", list_sms_codes)
+		authorized.GET("/full", list_sms_full)
 		router.GET("/apps", apps)
 		router.GET("/apps/:name", app)
 		router.POST("/apps/:name/delete", delete_app)
 		router.POST("/apps", add_app)
 	} else {
-		router.GET("/", list)
-		router.GET("/full", list_full)
+		router.GET("/", list_sms_codes)
+		router.GET("/full", list_sms_full)
 		router.GET("/apps", apps)
 		router.GET("/apps/:name", app)
 		router.POST("/apps/:name/delete", delete_app)
