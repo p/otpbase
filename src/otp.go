@@ -35,56 +35,56 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base32"
-	"encoding/binary"
-	"fmt"
-	"math"
-	"strconv"
-	"strings"
-	"time"
+  "crypto/hmac"
+  "crypto/sha1"
+  "encoding/base32"
+  "encoding/binary"
+  "fmt"
+  "math"
+  "strconv"
+  "strings"
+  "time"
 )
 
 const step = 30
 const digits = 6
 
 func secret_to_key(secret string) ([]byte, error) {
-	secret = strings.ToUpper(secret)
-	secret = strings.Replace(secret, " ", "", -1)
-	// repad base 32 strings if they are short.
-	for len(secret) < 32 && len(secret) > 16 {
-		secret = secret + "="
-	}
-	key, err := base32.StdEncoding.DecodeString(secret)
-	return key, err
+  secret = strings.ToUpper(secret)
+  secret = strings.Replace(secret, " ", "", -1)
+  // repad base 32 strings if they are short.
+  for len(secret) < 32 && len(secret) > 16 {
+    secret = secret + "="
+  }
+  key, err := base32.StdEncoding.DecodeString(secret)
+  return key, err
 }
 
 func gen_hotp(key []byte, counter int64) (string, error) {
-	var code uint32
+  var code uint32
 
-	hash := hmac.New(sha1.New, key)
+  hash := hmac.New(sha1.New, key)
 
-	err := binary.Write(hash, binary.BigEndian, counter)
-	if err != nil {
-		return "", err
-	}
+  err := binary.Write(hash, binary.BigEndian, counter)
+  if err != nil {
+    return "", err
+  }
 
-	h := hash.Sum(nil)
-	offset := h[19] & 0x0f
+  h := hash.Sum(nil)
+  offset := h[19] & 0x0f
 
-	trunc := binary.BigEndian.Uint32(h[offset : offset+4])
-	trunc &= 0x7fffffff
-	code = trunc % uint32(math.Pow(10, float64(digits)))
-	passcodeFormat := "%0" + strconv.Itoa(digits) + "d"
+  trunc := binary.BigEndian.Uint32(h[offset : offset+4])
+  trunc &= 0x7fffffff
+  code = trunc % uint32(math.Pow(10, float64(digits)))
+  passcodeFormat := "%0" + strconv.Itoa(digits) + "d"
 
-	return fmt.Sprintf(passcodeFormat, code), nil
+  return fmt.Sprintf(passcodeFormat, code), nil
 }
 
 func gen_totp(key []byte) (string, error) {
-	var code string
-	now := time.Now().UTC().Unix()
-	counter := now / step
-	code, err := gen_hotp(key, counter)
-	return code, err
+  var code string
+  now := time.Now().UTC().Unix()
+  counter := now / step
+  code, err := gen_hotp(key, counter)
+  return code, err
 }
