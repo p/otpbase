@@ -97,6 +97,15 @@ func list_sms_codes(c *gin.Context) {
   c.String(http.StatusOK, out)
 }
 
+func clear_sms_codes(c *gin.Context) {
+  out := ""
+  mutex.Lock()
+  entries = nil
+  mutex.Unlock()
+  set_cors_headers(c)
+  c.String(http.StatusNoContent, out)
+}
+
 func list_sms_full(c *gin.Context) {
   out := ""
   mutex.Lock()

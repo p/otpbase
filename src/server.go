@@ -219,24 +219,22 @@ func main() {
 
   router.POST("/", receive_sms)
 
+  var sms_router gin.IRouter
   if http_user != "" {
     authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
       http_user: http_password,
     }))
-    authorized.GET("/", list_sms_codes)
-    authorized.GET("/full", list_sms_full)
-    router.GET("/apps", apps)
-    router.GET("/apps/:name", app)
-    router.POST("/apps/:name/delete", delete_app)
-    router.POST("/apps", add_app)
+    sms_router = authorized
   } else {
-    router.GET("/", list_sms_codes)
-    router.GET("/full", list_sms_full)
-    router.GET("/apps", apps)
-    router.GET("/apps/:name", app)
-    router.POST("/apps/:name/delete", delete_app)
-    router.POST("/apps", add_app)
+    sms_router = router
   }
+  sms_router.GET("/", list_sms_codes)
+  sms_router.DELETE("/", clear_sms_codes)
+  sms_router.GET("/full", list_sms_full)
+  router.GET("/apps", apps)
+  router.GET("/apps/:name", app)
+  router.POST("/apps/:name/delete", delete_app)
+  router.POST("/apps", add_app)
 
   // By default it serves on :8080 unless a
   // PORT environment variable was defined.
