@@ -235,6 +235,7 @@ func main() {
   router.GET("/apps/:name", app)
   router.POST("/apps/:name/delete", delete_app)
   router.POST("/apps", add_app)
+  router.GET("/robots.txt", robots_txt)
 
   // By default it serves on :8080 unless a
   // PORT environment variable was defined.
