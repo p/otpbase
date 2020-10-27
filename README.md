@@ -27,7 +27,7 @@ phone number.
 
 otpbase's dependencies are managed with [go-get-deps](https://github.com/p/go-get-deps).
 
-## Usage
+## Configuration
 
 otpbase recognizes the following environment variables at runtime:
 
@@ -38,6 +38,16 @@ otpbase recognizes the following environment variables at runtime:
   the user name
 - HTTP_PASSWORD: enable HTTP authentication for retrieving OTP codes, specify
   the password
+
+## Usage
+
+To view codes received from SMSes: http://localhost
+
+To add an application for generating OTP codes:
+
+    curl -d 'name=myapp&secret=OTPSECRET' http://localhost/apps
+
+Then to retrieve an OTP code: http://localhost/apps/myapp
 
 ## Caveats
 
