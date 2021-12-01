@@ -30,7 +30,7 @@ import (
   "strings"
   "time"
 
-  bolt "github.com/coreos/bbolt"
+  bolt "go.etcd.io/bbolt"
   "html/template"
   "net/http"
 )
