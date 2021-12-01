@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/jessevdk/go-assets v0.0.0-20160921144138-4f4301a06e15
+	github.com/pborman/getopt/v2 v2.1.0
 	go.etcd.io/bbolt v1.3.6
 )
 

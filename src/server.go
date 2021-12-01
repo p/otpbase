@@ -28,6 +28,7 @@ import (
   "log"
   "regexp"
   "strings"
+  "github.com/pborman/getopt/v2" 
   "time"
 
   bolt "go.etcd.io/bbolt"
@@ -149,16 +150,37 @@ func set_cors_headers(c *gin.Context) {
   c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
   c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
 }
+  
+//user_flag := getopt.StringLong("user", 'u', "", "Username for HTTP basic authentication")
+//password_flag := getopt.StringLong("password", 'P', "", "Password for HTTP basic authentication")
 
 func main() {
   var err error
+  var db_path string
+  var port string
+  
+  getopt.FlagLong(&http_user, "user", 'u', "Username for HTTP basic authentication")
+  getopt.FlagLong(&http_password, "password", 'P', "Password for HTTP basic authentication")
+  getopt.FlagLong(&db_path, "db", 'd', "Path to database file (default: otpbase.db)")
+  getopt.FlagLong(&port, "port", 'p', "Port number to use (default: 8092)")
+  verbose_flag := getopt.BoolLong("verbose", 'v', "Enable debugging output")
+  usage_flag := getopt.BoolLong("help", 'h', "Show this help text")
+  
+  getopt.Parse()
+  
+  if *usage_flag!=false{getopt.Usage()
+  return}
 
   mutex = &sync.Mutex{}
   entries = make([]entry, 0)
   code_regexp = regexp.MustCompile(CODE_REGEXP)
 
+  if http_user == ""{
   http_user = os.Getenv("HTTP_USER")
+  }
+  if http_password ==""{
   http_password = os.Getenv("HTTP_PASSWORD")
+  }
   if http_user == "" && http_password != "" {
     log.Fatal("HTTP_PASSWORD was specified but HTTP_USER was not, they need to be given together")
   }
@@ -173,7 +195,9 @@ func main() {
     //log.Fatal("Error loading apps template: " + err)
   }
 
-  db_path := os.Getenv("DB_PATH")
+  if db_path == "" {
+  db_path = os.Getenv("DB_PATH")
+  }
   if db_path == "" {
     db_path = "otpbase.db"
   }
@@ -198,9 +222,11 @@ func main() {
   // Disable Console Color
   // gin.DisableConsoleColor()
 
+  if verbose_flag==nil{
   debug := os.Getenv("DEBUG")
   if debug == "" {
     gin.SetMode(gin.ReleaseMode)
+  }
   }
 
   // Creates a gin router with default middleware:
@@ -240,7 +266,9 @@ func main() {
   // By default it serves on :8080 unless a
   // PORT environment variable was defined.
   forward_number = os.Getenv("FORWARD")
-  port := os.Getenv("PORT")
+  if port==""{
+  port = os.Getenv("PORT")
+  }
   var iport int
   if port == "" {
     iport = 8092
