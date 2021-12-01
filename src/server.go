@@ -224,7 +224,7 @@ func main() {
   // Disable Console Color
   // gin.DisableConsoleColor()
 
-  if verbose_flag == nil {
+  if verbose_flag == nil || *verbose_flag == false {
     debug := os.Getenv("DEBUG")
     if debug == "" {
       gin.SetMode(gin.ReleaseMode)
